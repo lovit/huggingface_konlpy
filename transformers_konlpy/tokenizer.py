@@ -35,14 +35,39 @@ class KoNLPyTokenizer(BertTokenizer):
         super().__init__(vocab_file, unk_token=unk_token, sep_token=sep_token,
                          pad_token=pad_token, cls_token=cls_token,
                          mask_toekn=mask_token, do_basic_tokenize=False)
+
+        self.konlpy_name = konlpy_name
         self.konlpy_tagger = KONLPY_TAGGERS[konlpy_name]()
 
     def _tokenize(self, text):
         split_tokens = self.konlpy_tagger.pos(text, join=True)
         return split_tokens
 
+    def convert_tokens_to_string(self, tokens):
+        raise NotImplementedError('KoNLPyTokenizer does not provide this function')
 
-def get_tokenizer(tokenizer_name, vocab_file):
+    def save_vocabulary(self, directory, suffix=''):
+        directory = os.path.abspath(directory)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        if suffix:
+            suffix = '_' + suffix
+        vocab_file = f'{directory}/{self.kolnpy_name}{suffix}.vocab'
+        with open(vocab_file, "w", encoding="utf-8") as writer:
+            for token, token_index in sorted(self.vocab.items(), key=lambda kv: kv[1]):
+                if index != token_index:
+                    logger.warning(
+                        "Saving vocabulary to {}: vocabulary indices are not consecutive."
+                        " Please check that the vocabulary is not corrupted!".format(vocab_file)
+                    )
+                    index = token_index
+                writer.write(token + "\n")
+                index += 1
+        return (vocab_file,)
+
+
+def get_tokenizer(vocab_file, tokenizer_name=None):
+
     raise NotImplementedError
 
 
@@ -55,10 +80,9 @@ def check_special_tokens(special_tokens):
 
 
 def initialize_konlpy_tagger(tokenizer_name):
-    try:
+    if tokenizer_name in KONLPY_TAGGERS:
         return KONLPY_TAGGERS[tokenizer_name]()
-    except:
-        return None
+    raise ValueError(f'Only available {KONLPY_TAGGERS.keys()}')
 
 
 def save_vocabs(vocab_file, vocabs):
