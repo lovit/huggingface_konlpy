@@ -1,6 +1,7 @@
 import konlpy
 import os
 import transformers
+import warnings
 
 from collections import defaultdict
 from konlpy.tag import Hannanum, Kkma, Komoran, Mecab, Okt
@@ -38,6 +39,14 @@ class KoNLPyTokenizer(BertTokenizer):
 
         self.konlpy_name = konlpy_name
         self.konlpy_tagger = KONLPY_TAGGERS[konlpy_name]()
+        special_tokens = [unk_token, sep_token, pad_token, cls_token, mask_token]
+        self._check_special_tokens(special_tokens)
+
+    def _check_special_tokens(self, special_tokens):
+        for token in special_tokens:
+            if token not in self.vocab:
+                message = '\n"{}" does not exist in KoNLPyTokenizer.vocab. Check your `special_token` value'.format(token)
+                warnings.warn(message)
 
     def _tokenize(self, text):
         split_tokens = self.konlpy_tagger.pos(text, join=True)
@@ -56,7 +65,7 @@ class KoNLPyTokenizer(BertTokenizer):
         with open(vocab_file, "w", encoding="utf-8") as writer:
             for token, token_index in sorted(self.vocab.items(), key=lambda kv: kv[1]):
                 if index != token_index:
-                    logger.warning(
+                    warnings.warn(
                         "Saving vocabulary to {}: vocabulary indices are not consecutive."
                         " Please check that the vocabulary is not corrupted!".format(vocab_file)
                     )
@@ -67,7 +76,15 @@ class KoNLPyTokenizer(BertTokenizer):
 
 
 def get_tokenizer(vocab_file, tokenizer_name=None):
-
+    vocab_file = os.path.abspath(vocab_file)
+    if tokenizer_name is None:
+        file_name = vocab_file.rsplit(os.path.sep)[-1]
+        tokenizer_name = file_name.split('_')[0]
+        if not tokenizer_name in KONLPY_TAGGERS:
+            raise ValueError(f'{vocab_file} does not consist `tokenizer_name`' \
+                             'Set `tokenizer_name` like get_tokenizer(vocab_file, tokenizer_name="komoran"' \
+                             'Or use right formed `vocab_file` like vocab_file = "/path/to/komoran_news.vocab"')
+    return KoNLPyTokenizer(vocab_file, tokenizer_name)
     raise NotImplementedError
 
 
