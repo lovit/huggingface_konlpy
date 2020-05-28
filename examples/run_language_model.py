@@ -47,6 +47,8 @@ from transformers import (
     set_seed,
 )
 
+from transformers_konlpy import get_tokenizer
+
 
 logger = logging.getLogger(__name__)
 
