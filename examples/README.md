@@ -47,6 +47,7 @@ Or replace `--config_name` with `--model_type` like below
 ```
 python examples/run_language_model.py \
     --model_type gpt2
+    ...
 ```
 
 Then, trainer uses default configuration of GPT2 such as num layers and adapts only num vocabs to equal the number of lines in `vocab_file`
