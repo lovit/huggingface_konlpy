@@ -200,7 +200,7 @@ def main():
         tokenizer = get_tokenizer(model_args.vocab_file, model_args.tokenizer_name)
     else:
         raise ValueError(
-            "You should train `vocab.txt` using `transformers_konlpy.train_konlpy_vocab(` or `train_new_tokenizer.py`"
+            "You should train `vocab.txt` using `transformers_konlpy.train_konlpy_vocab()` or `prepare_tokenizer_and_train_data.py` "
             "This script does not support training new tokenizer"
         )
 
