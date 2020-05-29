@@ -47,6 +47,8 @@ from transformers import (
     set_seed,
 )
 
+from transformers_konlpy import get_tokenizer
+
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +77,10 @@ class ModelArguments:
         default=None, metadata={"help": "Pretrained config name or path if not the same as model_name"}
     )
     tokenizer_name: Optional[str] = field(
-        default=None, metadata={"help": "Pretrained tokenizer name or path if not the same as model_name"}
+        default=None, metadata={"help": "KoNLPy tokenizer name. Available ['komoran', 'kkma', 'hannanum', 'okt', 'mecab']"}
+    )
+    vocab_file: Optional[str] = field(
+        default=None, metadata={"help": "/path/to/tokenizer_name.vocab"}
     )
     cache_dir: Optional[str] = field(
         default=None, metadata={"help": "Where do you want to store the pretrained models downloaded from s3"}
@@ -179,6 +184,9 @@ def main():
     # The .from_pretrained methods guarantee that only one local process can concurrently
     # download model & vocab.
 
+    # You can customize model configuration with below codes
+    # >>> config = BertConfig(set some parameters ... )
+    # >>> config.to_json_file('./test_config.json')
     if model_args.config_name:
         config = AutoConfig.from_pretrained(model_args.config_name, cache_dir=model_args.cache_dir)
     elif model_args.model_name_or_path:
@@ -187,14 +195,13 @@ def main():
         config = CONFIG_MAPPING[model_args.model_type]()
         logger.warning("You are instantiating a new config instance from scratch.")
 
-    if model_args.tokenizer_name:
-        tokenizer = AutoTokenizer.from_pretrained(model_args.tokenizer_name, cache_dir=model_args.cache_dir)
-    elif model_args.model_name_or_path:
-        tokenizer = AutoTokenizer.from_pretrained(model_args.model_name_or_path, cache_dir=model_args.cache_dir)
+    # Load KoNLPyTokenizer
+    if model_args.vocab_file:
+        tokenizer = get_tokenizer(model_args.vocab_file, model_args.tokenizer_name)
     else:
         raise ValueError(
-            "You are instantiating a new tokenizer from scratch. This is not supported, but you can do it from another script, save it,"
-            "and load it from here, using --tokenizer_name"
+            "You should train `vocab.txt` using `transformers_konlpy.train_konlpy_vocab()` or `prepare_tokenizer_and_train_data.py` "
+            "This script does not support training new tokenizer"
         )
 
     if model_args.model_name_or_path:
@@ -223,7 +230,6 @@ def main():
         data_args.block_size = min(data_args.block_size, tokenizer.max_len)
 
     # Get datasets
-
     train_dataset = get_dataset(data_args, tokenizer=tokenizer) if training_args.do_train else None
     eval_dataset = get_dataset(data_args, tokenizer=tokenizer, evaluate=True) if training_args.do_eval else None
     data_collator = DataCollatorForLanguageModeling(

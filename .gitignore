@@ -10,6 +10,7 @@ build/
 
 # Experiments
 tmp/
+tests/data/cached*
 
 # Jupyter notebook
 .ipynb_checkpoints/
