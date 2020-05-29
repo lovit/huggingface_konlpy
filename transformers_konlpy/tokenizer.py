@@ -63,6 +63,7 @@ class KoNLPyTokenizer(BertTokenizer):
             suffix = '_' + suffix
         vocab_file = f'{directory}/{self.konlpy_name}{suffix}.vocab'
         with open(vocab_file, "w", encoding="utf-8") as writer:
+            index = 0
             for token, token_index in sorted(self.vocab.items(), key=lambda kv: kv[1]):
                 if index != token_index:
                     warnings.warn(
