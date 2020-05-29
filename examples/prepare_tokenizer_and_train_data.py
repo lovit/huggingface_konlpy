@@ -91,7 +91,7 @@ def main():
     if not os.path.exists(data_args.train_data_file):
         raise ValueError('Not found data file. Check `train_data_file`.')
 
-    if model_args.num_vocabs < 0 and model_args.min_frequency < 0:
+    if model_args.train_tokenizer and model_args.num_vocabs < 0 and model_args.min_frequency < 0:
         raise ValueError('One of `num_vocabs` or `min_frequency` must be positive integer')
 
     if model_args.vocab_directory is None:
