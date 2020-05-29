@@ -19,9 +19,9 @@ KONLPY_TAGGERS = {
 }
 
 SPECIAL_TOKENS = [
+    '[PAD]',
     '[BOS]',
     '[EOS]',
-    '[PAD]',
     '[MASK]',
     '[CLS]',
     '[SEP]',
