@@ -23,4 +23,3 @@ python examples/prepare_tokenizer_and_train_data.py \
     --line_by_line \
     --block_size 512
 ```
-

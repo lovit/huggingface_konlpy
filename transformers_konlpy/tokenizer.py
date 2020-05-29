@@ -19,9 +19,9 @@ KONLPY_TAGGERS = {
 }
 
 SPECIAL_TOKENS = [
+    '[PAD]',
     '[BOS]',
     '[EOS]',
-    '[PAD]',
     '[MASK]',
     '[CLS]',
     '[SEP]',
@@ -31,11 +31,11 @@ SPECIAL_TOKENS = [
 
 class KoNLPyTokenizer(BertTokenizer):
     def __init__(self, vocab_file, konlpy_name, unk_token="[UNK]", sep_token="[SEP]",
-                 pad_token="[PAD]", cls_token="[CLS]", mask_token="[MASK]"):
+                 pad_token="[PAD]", cls_token="[CLS]", mask_token="[MASK]", max_length=512):
 
         super().__init__(vocab_file, unk_token=unk_token, sep_token=sep_token,
                          pad_token=pad_token, cls_token=cls_token,
-                         mask_toekn=mask_token, do_basic_tokenize=False)
+                         mask_toekn=mask_token, do_basic_tokenize=False, model_max_length=max_length)
 
         self.konlpy_name = konlpy_name
         self.konlpy_tagger = KONLPY_TAGGERS[konlpy_name]()
@@ -61,8 +61,9 @@ class KoNLPyTokenizer(BertTokenizer):
             os.makedirs(directory)
         if suffix:
             suffix = '_' + suffix
-        vocab_file = f'{directory}/{self.kolnpy_name}{suffix}.vocab'
+        vocab_file = f'{directory}/{self.konlpy_name}{suffix}.vocab'
         with open(vocab_file, "w", encoding="utf-8") as writer:
+            index = 0
             for token, token_index in sorted(self.vocab.items(), key=lambda kv: kv[1]):
                 if index != token_index:
                     warnings.warn(
@@ -78,14 +79,15 @@ class KoNLPyTokenizer(BertTokenizer):
 def get_tokenizer(vocab_file, tokenizer_name=None):
     vocab_file = os.path.abspath(vocab_file)
     if tokenizer_name is None:
-        file_name = vocab_file.rsplit(os.path.sep)[-1]
-        tokenizer_name = file_name.split('_')[0]
+        _, file_name = os.path.split(vocab_file)
+        tokenizer_name = file_name.split('.vocab')[0].split('_')[0]
         if not tokenizer_name in KONLPY_TAGGERS:
-            raise ValueError(f'{vocab_file} does not consist `tokenizer_name`' \
-                             'Set `tokenizer_name` like get_tokenizer(vocab_file, tokenizer_name="komoran"' \
-                             'Or use right formed `vocab_file` like vocab_file = "/path/to/komoran_news.vocab"')
+            raise ValueError(
+                '`vocab_file` does not consist `tokenizer_name` '
+                'Set `tokenizer_name` like get_tokenizer(vocab_file, tokenizer_name="komoran" '
+                'Or use right formed `vocab_file` like vocab_file = "/path/to/komoran_news.vocab"'
+            )
     return KoNLPyTokenizer(vocab_file, tokenizer_name)
-    raise NotImplementedError
 
 
 def check_special_tokens(special_tokens):
