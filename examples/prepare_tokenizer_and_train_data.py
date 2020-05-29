@@ -33,6 +33,7 @@ class ModelArguments:
         metadata={"help": "Overwrite vocab if there already exist vocab at user configurated path."},
     )
 
+
 @dataclass
 class DataTrainingArguments:
     """
