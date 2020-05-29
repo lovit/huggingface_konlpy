@@ -4,6 +4,7 @@ from dataclasses import dataclass, field
 from typing import Optional
 from transformers import HfArgumentParser
 from transformers_konlpy import get_tokenizer, train_konlpy_vocab
+from tqdm import tqdm
 
 
 @dataclass
@@ -11,7 +12,10 @@ class ModelArguments:
     """
     Arguments pertaining to which tokenizer we are train
     """
-
+    train_tokenizer: bool = field(
+        default=False,
+        metadata={"help": "Train new KoNLPyTokenizer"},
+    )
     tokenizer_name: Optional[str] = field(
         default=None, metadata={"help": "KoNLPy tokenizer name. Available ['komoran', 'kkma', 'hannanum', 'okt', 'mecab']"}
     )
@@ -24,7 +28,10 @@ class ModelArguments:
     min_frequency: Optional[int] = field(
         default=-1, metadata={"help": "Minimum occurrence in `train_data_file`"}
     )
-
+    overwrite_vocab: bool = field(
+        default=False,
+        metadata={"help": "Overwrite vocab if there already exist vocab at user configurated path."},
+    )
 
 @dataclass
 class DataTrainingArguments:
@@ -63,7 +70,7 @@ def prepare_dataset(tokenizer, file_path, block_size):
 
     tokenized_text = []
     for line in tqdm(text, ascii=True, desc='Preparing dataset'):
-        tokenized_text += tokenizer.convert_tokens_to_ids(tokenizer.tokenize(text))
+        tokenized_text += tokenizer.convert_tokens_to_ids(tokenizer.tokenize(line))
 
     for i in range(0, len(tokenized_text) - block_size + 1, block_size):  # Truncate in block of block_size
         examples.append(
@@ -93,16 +100,25 @@ def main():
         raise ValueError("Set `tokenizer_name`. Available ['komoran', 'kkma', 'hannanum', 'okt', 'mecab']")
     vocab_file = f'{model_args.vocab_directory}/{model_args.tokenizer_name}.vocab'
 
-    train_konlpy_vocab(
-        model_args.tokenizer_name,
-        data_args.train_data_file,
-        model_args.num_vocabs,
-        model_args.min_frequency,
-        None,  # TODO: available to customize special_tokens
-        vocab_file
-    )
+    if os.path.exists(vocab_file) and not model_args.overwrite_vocab and model_args.train_tokenizer:
+        raise ValueError(
+            'There already exist vocab file.'
+            'If you want to retrain tokenizer, set --overwrite_vocab'
+        )
+
+    if model_args.train_tokenizer:
+        train_konlpy_vocab(
+            model_args.tokenizer_name,
+            data_args.train_data_file,
+            model_args.num_vocabs,
+            model_args.min_frequency,
+            None,  # TODO: available to customize special_tokens
+            vocab_file
+        )
 
     if data_args.prepare_dataset and data_args.line_by_line:
+        if data_args.block_size < 0:
+            raise ValueError('Set `block_size` as positive integer. for example 512')
         tokenizer = get_tokenizer(vocab_file, model_args.tokenizer_name)
         prepare_dataset(tokenizer, data_args.train_data_file, data_args.block_size)
 
