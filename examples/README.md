@@ -31,10 +31,10 @@ python examples/run_language_model.py \
     --output_dir ./tmp/models/ \
     --overwrite_output_dir \
     --config_name ./tmp/test_bert.json \
-    --vocab_file ./tmp/models/komoran.vocab \
+    --vocab_file ./tmp/models/bert/komoran.vocab \
     --mlm \
     --do_train \
-    --train_data_file './tests/data/sample_corpus.txt' \
+    --train_data_file ./tests/data/sample_corpus.txt \
     --learning_rate 1e-4 \
     --num_train_epochs 3 \
     --save_total_limit 2 \
