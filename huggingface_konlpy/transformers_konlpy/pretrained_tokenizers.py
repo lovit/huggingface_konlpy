@@ -70,10 +70,10 @@ class KoNLPyBertTokenizer(BertTokenizer):
     Examples::
         Train vocabulary using mecab as wordpiece tokenizer
 
-            >>> from huggingface_konlpy.tokenizers_konlpy import KoNLPyTokenizersTokenizer
+            >>> from huggingface_konlpy.tokenizers_konlpy import KoNLPyBertWordPieceTokenizer
             >>> from konlpy.tag import Mecab
 
-            >>> mecab_wordpiece_tokenizer = KoNLPyTokenizersTokenizer(Mecab(), use_tag=True)
+            >>> mecab_wordpiece_tokenizer = KoNLPyBertWordPieceTokenizer(Mecab(), use_tag=True)
             >>> mecab_wordpiece_tokenizer.train(
             >>>     files = ['../data/2020-07-29_covid_news_sents.txt']
             >>> )

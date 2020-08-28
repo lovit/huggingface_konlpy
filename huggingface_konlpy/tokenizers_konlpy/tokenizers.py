@@ -121,7 +121,7 @@ class KoNLPyPretokBertWordPieceTokenizer(BertWordPieceTokenizer):
         return self._tokenizer.encode_batch(konlpy_pretok_inputs, is_pretokenized, add_special_tokens)
 
 
-class KoNLPyTokenizersTokenizer:
+class KoNLPyBertWordPieceTokenizer:
     def __init__(self, konlpy_tagger, wordpieces_prefix="##", use_tag=False):
         konlpy_wordpiece = KoNLPyWordPieceTokenizer(
             konlpy_tagger,
