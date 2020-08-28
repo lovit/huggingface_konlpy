@@ -5,6 +5,7 @@
 
 ## Examples
 
+BERT 학습 예시는 [`examples/`](https://github.com/lovit/huggingface_konlpy/tree/master/examples) 에 있습니다.
 
 ### From training tokenizer and load transformers.BertTokenizer (+ KoNLPy) with tag
 
