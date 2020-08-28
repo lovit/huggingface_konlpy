@@ -1,2 +1,2 @@
 from .pretokenizers import KoNLPyPreTokenizer, KoNLPyWordPieceTokenizer
-from .tokenizers import KoNLPyPretokBertWordPieceTokenizer, KoNLPyBertWordPieceTokenizer
+from .tokenizers import KoNLPyPretokBertWordPieceTokenizer, KoNLPyBertWordPieceTrainer

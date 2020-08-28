@@ -1,8 +1,28 @@
+from konlpy.tag import Komoran, Mecab, Okt
 from unicodedata import normalize
+from .tokenizers_konlpy import KoNLPyWordPieceTokenizer
+from .transformers_konlpy import KoNLPyBertTokenizer
+
+
+KONLPY = {
+    'komoran': Komoran,
+    'mecab': Mecab,
+    'Okt': Okt
+}
 
 
 def compose(tokens):
     return [normalize('NFKC', token) for token in tokens]
+
+
+def get_tokenizer(vocab_file, konlpy_name, use_tag=False):
+    if konlpy_name not in KONLPY:
+        raise ValueError(f'Support only {set(KONLPY.keys())}')
+    konlpy_bert_tokenizer = KoNLPyBertTokenizer(
+        konlpy_wordpiece = KoNLPyWordPieceTokenizer(KONLPY[konlpy_name](), use_tag=use_tag),
+        vocab_file = vocab_file
+    )
+    return konlpy_bert_tokenizer
 
 
 def prepare_pretokenized_corpus(raw_path, pretokenized_path, pretok):
