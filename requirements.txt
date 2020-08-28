@@ -1,5 +1,5 @@
 konlpy>=0.5.2
-transformers>=2.10.0
+tokenizers==0.8.1
+transformers==3.0.2
 tqdm>=4.46.0
 wandb
-
