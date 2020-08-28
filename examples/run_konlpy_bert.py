@@ -14,14 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """
-Fine-tuning the library models for language modeling on a text file (GPT, GPT-2, BERT, RoBERTa).
-GPT and GPT-2 are fine-tuned using a causal language modeling (CLM) loss while BERT and RoBERTa are fine-tuned
-using a masked language modeling (MLM) loss.
-
-This script modified to train language models with KoNLPy based on huggingface language model train script.
-
-  https://github.com/huggingface/transformers/blob/master/examples/language-modeling/run_language_modeling.py
-
+Fine-tuning the library models for language modeling on a text file (GPT, GPT-2, CTRL, BERT, RoBERTa, XLNet).
+GPT, GPT-2 and CTRL are fine-tuned using a causal language modeling (CLM) loss. BERT and RoBERTa are fine-tuned
+using a masked language modeling (MLM) loss. XLNet is fine-tuned using a permutation language modeling (PLM) loss.
 """
 
 
@@ -47,7 +42,7 @@ from transformers import (
     set_seed,
 )
 
-from transformers_konlpy import get_tokenizer
+from huggingface_konlpy import get_tokenizer
 
 
 logger = logging.getLogger(__name__)
@@ -77,13 +72,20 @@ class ModelArguments:
         default=None, metadata={"help": "Pretrained config name or path if not the same as model_name"}
     )
     tokenizer_name: Optional[str] = field(
-        default=None, metadata={"help": "KoNLPy tokenizer name. Available ['komoran', 'kkma', 'hannanum', 'okt', 'mecab']"}
-    )
-    vocab_file: Optional[str] = field(
-        default=None, metadata={"help": "/path/to/tokenizer_name.vocab"}
+        default=None, metadata={"help": "Pretrained tokenizer name or path if not the same as model_name"}
     )
     cache_dir: Optional[str] = field(
         default=None, metadata={"help": "Where do you want to store the pretrained models downloaded from s3"}
+    )
+    # [modified] added three arguments
+    vocab_file: str = field(
+        default=None, metadata={"help": "Pretrained tokenizer vocab path"}
+    )
+    konlpy_name: str = field(
+        default=None, metadata={"help": "KoNLPy tagger name. One of ['komoran', 'mecab', 'okt']"}
+    )
+    konlpy_usetag: bool = field(
+        default=False, metadata={"help": "If True, KoNLPy returns split tokens with tag"}
     )
 
 
@@ -110,6 +112,15 @@ class DataTrainingArguments:
     )
     mlm_probability: float = field(
         default=0.15, metadata={"help": "Ratio of tokens to mask for masked language modeling loss"}
+    )
+    plm_probability: float = field(
+        default=1 / 6,
+        metadata={
+            "help": "Ratio of length of a span of masked tokens to surrounding context length for permutation language modeling."
+        },
+    )
+    max_span_length: int = field(
+        default=5, metadata={"help": "Maximum length of a span of masked tokens for permutation language modeling."}
     )
 
     block_size: int = field(
@@ -184,9 +195,6 @@ def main():
     # The .from_pretrained methods guarantee that only one local process can concurrently
     # download model & vocab.
 
-    # You can customize model configuration with below codes
-    # >>> config = BertConfig(set some parameters ... )
-    # >>> config.to_json_file('./test_config.json')
     if model_args.config_name:
         config = AutoConfig.from_pretrained(model_args.config_name, cache_dir=model_args.cache_dir)
     elif model_args.model_name_or_path:
@@ -195,14 +203,19 @@ def main():
         config = CONFIG_MAPPING[model_args.model_type]()
         logger.warning("You are instantiating a new config instance from scratch.")
 
-    # Load KoNLPyTokenizer
-    if model_args.vocab_file:
-        tokenizer = get_tokenizer(model_args.vocab_file, model_args.tokenizer_name)
+    """
+    # [modified] use custom BertTokenizer
+    if model_args.tokenizer_name:
+        tokenizer = AutoTokenizer.from_pretrained(model_args.tokenizer_name, cache_dir=model_args.cache_dir)
+    elif model_args.model_name_or_path:
+        tokenizer = AutoTokenizer.from_pretrained(model_args.model_name_or_path, cache_dir=model_args.cache_dir)
     else:
         raise ValueError(
-            "Set `vocab_file`. This script does not support training new tokenizer"
-            "You should train `vocab.txt` using `transformers_konlpy.train_konlpy_vocab()` or `prepare_tokenizer_and_train_data.py` "
+            "You are instantiating a new tokenizer from scratch. This is not supported, but you can do it from another script, save it,"
+            "and load it from here, using --tokenizer_name"
         )
+    """
+    tokenizer = get_tokenizer(model_args.vocab_file, model_args.konlpy_name, model_args.konlpy_usetag)
 
     if model_args.model_name_or_path:
         model = AutoModelWithLMHead.from_pretrained(
@@ -219,8 +232,8 @@ def main():
 
     if config.model_type in ["bert", "roberta", "distilbert", "camembert"] and not data_args.mlm:
         raise ValueError(
-            "BERT and RoBERTa-like models do not have LM heads but masked LM heads. They must be run using the --mlm "
-            "flag (masked language modeling)."
+            "BERT and RoBERTa-like models do not have LM heads but masked LM heads. They must be run using the"
+            "--mlm flag (masked language modeling)."
         )
 
     if data_args.block_size <= 0:
@@ -230,6 +243,7 @@ def main():
         data_args.block_size = min(data_args.block_size, tokenizer.max_len)
 
     # Get datasets
+    # [modified] this script supports only BERT training
     train_dataset = get_dataset(data_args, tokenizer=tokenizer) if training_args.do_train else None
     eval_dataset = get_dataset(data_args, tokenizer=tokenizer, evaluate=True) if training_args.do_eval else None
     data_collator = DataCollatorForLanguageModeling(
@@ -253,6 +267,7 @@ def main():
             if model_args.model_name_or_path is not None and os.path.isdir(model_args.model_name_or_path)
             else None
         )
+        print(f'MODELPATH = {model_path}')
         trainer.train(model_path=model_path)
         trainer.save_model()
         # For convenience, we also re-save the tokenizer to the same directory,
@@ -281,6 +296,11 @@ def main():
         results.update(result)
 
     return results
+
+
+def _mp_fn(index):
+    # For xla_spawn (TPUs)
+    main()
 
 
 if __name__ == "__main__":
