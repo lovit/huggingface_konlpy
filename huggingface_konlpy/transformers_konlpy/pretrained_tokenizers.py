@@ -66,6 +66,32 @@ class KoNLPyPretokBertTokenizer(BertTokenizer):
 
 
 class KoNLPyBertTokenizer(BertTokenizer):
+    """
+    Examples::
+        Train vocabulary using mecab as wordpiece tokenizer
+
+            >>> from huggingface_konlpy.tokenizers_konlpy import KoNLPyTokenizersTokenizer
+            >>> from konlpy.tag import Mecab
+
+            >>> mecab_wordpiece_tokenizer = KoNLPyTokenizersTokenizer(Mecab(), use_tag=True)
+            >>> mecab_wordpiece_tokenizer.train(
+            >>>     files = ['../data/2020-07-29_covid_news_sents.txt']
+            >>> )
+            >>> mecab_wordpiece_tokenizer.save_model('./tokenizers/BertStyleMecab/', 'usetag')
+
+        Load pretrained "mecab + bert tokenizer"
+
+            >>> from huggingface_konlpy.transformers_konlpy import KoNLPyBertTokenizer
+
+            >>> mecab_bert_tokenizer = KoNLPyBertTokenizer(
+            >>>     konlpy_wordpiece = mecab_wordpiece_tokenizer,
+            >>>     vocab_file = './tokenizers/BertStyleMecab/usetag-vocab.txt'
+            >>> )
+            >>> sent = '신종 코로나바이러스 감염증(코로나19) 사태가 심각합니다'
+            >>> mecab_bert_tokenizer.tokenize(sent)
+            $ ['신종/NNG', '코로나/NNP', '##바이러스/NNG', '감염증/NNG', '##(/SSO', '##코로나/NNP',
+               '##19/SN', '##)/SSC', '사태/NNG', '##가/JKS', '심각/XR', '합', '니', '다']
+    """
     def __init__(
         self,
         konlpy_wordpiece,
